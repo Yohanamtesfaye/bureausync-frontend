@@ -162,10 +162,10 @@ const Slideshow = ({ bureaus }) => {
                     {currentSlide.content.personnel.map((person, index) => (
                       <div
                         key={index}
-                        className="flex bg-blue-50 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all"
+                        className="flex mb-4 bg-blue-50 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all"
                       >
                         {/* Larger image on the left */}
-                        <div className="w-1/3 relative">
+                        <div className="w-1/3  relative">
                           <img
                             src={person.image || `/placeholder.svg?height=300&width=300`}
                             alt={person.name}
@@ -181,7 +181,7 @@ const Slideshow = ({ bureaus }) => {
                         </div>
 
                         {/* Details on the right */}
-                        <div className="w-2/3 p-6 flex flex-col justify-center">
+                        <div className="w-2/3 p-6  flex flex-col justify-center">
                           <h5 className="text-2xl font-bold text-blue-800 mb-2">{person.name}</h5>
                           
                           <div className="space-y-3">
