@@ -23,13 +23,13 @@ export const leadershipData = [
       image: desta,
     },
     {
-      id: 4,
-      name: "Ato Dawit Haile",
-      position: "የማረሚያ ቤቶች ዋና ዳይሬክተር",
+      id: 5,
+      name: "ኮማንደር አስቻለው መኮንን",
+      position: "የቃሊቲ ማረሚያ ማዕከል ዳይሬክተር",
       image: desta,
     },
     {
-      id: 5,
+      id: 4,
       name: "የጥበቃና ደህንነት ዘርፍ",
       position: "ም/ኮሚሽነር ጀነራል ተክሉ ለታ",
       image: tekle,
