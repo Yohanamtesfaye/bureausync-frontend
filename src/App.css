@@ -1,0 +1,34 @@
+.bg-navy {
+  background-color: var(--navy);
+}
+
+.bg-navy-light {
+  background-color: var(--navy-light);
+}
+
+.bg-navy-medium {
+  background-color: var(--navy-medium);
+}
+
+.bg-navy-dark {
+  background-color: var(--navy-dark);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.border-gold {
+  border-color: var(--gold);
+}
+
+/* App-specific styles */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.duration-800 {
+  transition-duration: 800ms;
+}
