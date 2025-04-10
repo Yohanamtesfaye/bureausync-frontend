@@ -1,22 +1,30 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Phone, MapPin, Briefcase } from 'lucide-react'
+import { Phone, MapPin, Briefcase, Award, Star } from "lucide-react"
+import { leadershipData } from "../data/leadershipData"
 
 const Slideshow = ({ bureaus }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [direction, setDirection] = useState("next")
 
-  // Add Vision and Mission slide
+  // Add Vision and Mission slide, and Leadership slide
   const slides = useMemo(
     () => [
       {
         type: "vision-mission",
         content: {
           vision: "በ2022ዓ/ም የሕግ የበላይነትና የእስረኞች ሰብዓዊ መብት የተከበረበት፣ የታረመና የታነፀ፣ ህግ አክባሪና አምራች ዜጋ የሚፈራበት በምስራቅ አፍሪካ ተምሳሌት/ሞዴል/ ማረሚያ ቤት ዕውን ማድረግ፤",
-          mission: " በፍርድ ቤት ውሳኔ ወይም ትዕዛዝ መሠረት ወደ ማረፊያና ማረሚያ ቤት የሚላኩ የቀጠሮ እስረኞችና ታራሚዎችን በመቀበል የተጠናከረ የጥበቃ ደህንነትና አስተዳደር፣ የመሠረታዊ ፍላጎት አቅርቦት፣ የተሃድሶና ልማት አገልግሎት በመስጠት ታራሚዎች የወንጀል አስከፊነትን ተረድተው አምራችና ህግ አክባሪ ዜጋ እንዲሆኑ በማድረግ ኮሚሽኑ ወንጀልን በመከላከልና የህዝብን ሠላምና ደህንነት በማረጋገጥ ረገድ የበኩሉን ድርሻ መወጣት፡፡",
-          // values: ["ታራሚዎችን በሰብዓዊ ክብር መያዝ", "ለህግ ተገዢ መሆን", "ግልጽነትና ተጠያቂነት", "ቅንነት", "ፍትሃዊነት"],
+          mission: "በፍርድ ቤት ውሳኔ ወይም ትዕዛዝ መሠረት ወደ ማረፊያና ማረሚያ ቤት የሚላኩ የቀጠሮ እስረኞችና ታራሚዎችን በመቀበል የተጠናከረ የጥበቃ ደህንነትና አስተዳደር፣ የመሠረታዊ ፍላጎት አቅርቦት፣ የተሃድሶና ልማት አገልግሎት በመስጠት ታራሚዎች የወንጀል አስከፊነትን ተረድተው አምራችና ህግ አክባሪ ዜጋ እንዲሆኑ በማድረግ ኮሚሽኑ ወንጀልን በመከላከልና የህዝብን ሠላምና ደህንነት በማረጋገጥ ረገድ የበኩሉን ድርሻ መወጣት፡፡",
+          values: ["ታራሚዎችን በሰብዓዊ ክብር መያዝ", "ለህግ ተገዢ መሆን", "ግልጽነትና ተጠያቂነት", "ቅንነት", "ፍትሃዊነት"],
+        },
+      },
+      {
+        type: "leadership",
+        content: {
+          title: "የኮሚሽኑ ከፍተኛ አመራሮች",
+          leaders: leadershipData,
         },
       },
       ...bureaus.map((bureau) => ({ type: "bureau", content: bureau })),
@@ -82,11 +90,21 @@ const Slideshow = ({ bureaus }) => {
     return `+251 9${index + 1} ${(index + 10) * 111} ${(index + 5) * 111}`
   }
 
+  // Get slide title based on slide type
+  const getSlideTitle = (slide) => {
+    switch (slide.type) {
+      case "vision-mission":
+        return "ራዕይና ተልዕኮ"
+      case "leadership":
+        return "የኮሚሽኑ ከፍተኛ አመራሮች"
+      default:
+        return "የቢሮ መረጃ"
+    }
+  }
+
   return (
     <div className="h-full flex flex-col">
-      <h2 className="text-3xl font-bold mb-6 text-blue-800 text-center">
-        {currentSlide.type === "vision-mission" ? "ራዕይና ተልዕኮ" : "ወዴት መሄድ ይፈልጋሉ"}
-      </h2>
+      <h2 className="text-3xl font-bold mb-4 text-blue-800 text-center">{getSlideTitle(currentSlide)}</h2>
 
       <div className="flex-1 flex items-center justify-center relative">
         <button
@@ -106,7 +124,7 @@ const Slideshow = ({ bureaus }) => {
         </button>
 
         <div
-          className={`max-w-4xl w-full p-10 rounded-lg border border-blue-200 bg-white shadow-xl transition-all duration-800 ${
+          className={`w-full h-full flex items-center justify-center transition-all duration-800 ${
             isTransitioning
               ? direction === "next"
                 ? "opacity-0 transform translate-x-10"
@@ -115,9 +133,9 @@ const Slideshow = ({ bureaus }) => {
           }`}
         >
           {currentSlide.type === "vision-mission" ? (
-            <div className="text-center animate-fadeIn">
+            <div className="w-full max-w-4xl p-8 text-center rounded-lg border border-blue-200 bg-white shadow-xl animate-fadeIn">
               <div className="mb-8">
-                <div className="bg-blue-600 text-white inline-block px-6 py-2 rounded-full text-lg font-medium mb-4">
+                <div className="bg-blue-600 text-white  inline-block px-6 py-2 rounded-full text-lg font-medium mb-4">
                   ራዕይ
                 </div>
                 <p className="text-2xl text-blue-800">{currentSlide.content.vision}</p>
@@ -143,8 +161,62 @@ const Slideshow = ({ bureaus }) => {
                 </div> */}
               {/* </div> */}
             </div>
+          ) : currentSlide.type === "leadership" ? (
+            <div className="w-full h-full flex flex-col items-center justify-center animate-fadeIn">
+              {/* Decorative background elements */}
+              <div className="absolute inset-0 overflow-hidden z-0">
+                <div className="absolute top-0 left-0 w-64 h-64 bg-blue-100 rounded-full opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
+                <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-100 rounded-full opacity-20 translate-x-1/2 translate-y-1/2"></div>
+              </div>
+
+              <div className="relative z-10 w-full max-w-5xl">
+               
+                <div className="flex flex-col items-center mb-6">
+                  <div className="bg-white text-blue-800 px-8 py-3 rounded-full text-xl font-medium mb-6 shadow-lg flex items-center">
+                    <Award className="w-6 h-6 mr-3" />
+                    ዋና መስሪያ ቤት ስትራቴጂክ አመራሮችን
+                  </div>
+                </div>
+
+
+                <div className="flex justify-center items-stretch gap-4 w-full">
+                  {currentSlide.content.leaders.map((leader, index) => (
+                    <div
+                      key={leader.id}
+                      className="flex-1 bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all border border-blue-100 flex flex-col max-w-[18%]"
+                    >
+                      {/* Leader image at top */}
+                      <div className="relative w-full pt-[100%]">
+                        {" "}
+                        {/* Aspect ratio 1:1 */}
+                        <img
+                          src={leader.image || `/placeholder.svg?height=300&width=300`}
+                          alt={leader.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null
+                            e.target.src = `https://i.pravatar.cc/300?img=${index + 20}`
+                          }}
+                        />
+                        <div className="absolute top-2 right-2">
+                          <div className="bg-blue-600 text-white p-1 rounded-full">
+                            <Star className="w-4 h-4" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Leader details below image */}
+                      <div className="p-3 text-center bg-gradient-to-b from-blue-50 to-white flex-1 flex flex-col justify-between">
+                        <h5 className="text-lg font-bold text-blue-800 mb-1 line-clamp-2">{leader.name}</h5>
+                        <div className="text-blue-600 text-sm font-medium">{leader.position}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           ) : (
-            <>
+            <div className="w-full max-w-4xl p-8 rounded-lg border border-blue-200 bg-white shadow-xl">
               <div className="text-center mb-8">
                 <div className="bg-blue-50 text-blue-800 inline-block px-4 py-1 rounded-full text-sm font-medium mb-4">
                   {currentSlide.content.floor}ኛ ፎቅ , ክፍል {currentSlide.content.room}
@@ -162,10 +234,10 @@ const Slideshow = ({ bureaus }) => {
                     {currentSlide.content.personnel.map((person, index) => (
                       <div
                         key={index}
-                        className="flex mb-4 bg-blue-50 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all"
+                        className="flex bg-blue-50 mb-5 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all"
                       >
                         {/* Larger image on the left */}
-                        <div className="w-1/3  relative">
+                        <div className="w-1/3 relative">
                           <img
                             src={person.image || `/placeholder.svg?height=300&width=300`}
                             alt={person.name}
@@ -181,20 +253,20 @@ const Slideshow = ({ bureaus }) => {
                         </div>
 
                         {/* Details on the right */}
-                        <div className="w-2/3 p-6  flex flex-col justify-center">
+                        <div className="w-2/3 p-6 flex flex-col justify-center">
                           <h5 className="text-2xl font-bold text-blue-800 mb-2">{person.name}</h5>
-                          
+
                           <div className="space-y-3">
                             <div className="flex items-center text-blue-700">
                               <Briefcase className="w-5 h-5 mr-2" />
                               <span className="text-lg">{person.title}</span>
                             </div>
-                            
+
                             <div className="flex items-center text-blue-700">
                               <MapPin className="w-5 h-5 mr-2" />
                               <span className="text-lg">ክፍል {currentSlide.content.room}</span>
                             </div>
-                            
+
                             <div className="flex items-center text-blue-700">
                               <Phone className="w-5 h-5 mr-2" />
                               <span className="text-lg">{generatePhoneNumber(index)}</span>
@@ -206,7 +278,7 @@ const Slideshow = ({ bureaus }) => {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
 
@@ -227,7 +299,7 @@ const Slideshow = ({ bureaus }) => {
         </button>
       </div>
 
-      <div className="mt-6 flex justify-center space-x-2">
+      <div className="mt-4 flex justify-center space-x-2 flex-wrap">
         {slides.map((_, index) => (
           <button
             key={index}
