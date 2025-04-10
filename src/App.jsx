@@ -30,6 +30,19 @@ const App = () => {
     return () => clearTimeout(timer)
   }, [])
 
+  // Get unique floors and split them for left and right sides
+  const getFloors = () => {
+    const floors = [...new Set(bureauData.map((bureau) => bureau.floor))].sort((a, b) => a - b)
+    const midpoint = Math.ceil(floors.length / 2)
+
+    return {
+      leftFloors: floors.slice(0, midpoint),
+      rightFloors: floors.slice(midpoint),
+    }
+  }
+
+  const { leftFloors, rightFloors } = getFloors()
+
   if (showSplash) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
@@ -48,15 +61,20 @@ const App = () => {
     <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-white text-gray-800 overflow-hidden">
       <Header currentTime={currentTime} />
       <div className="flex flex-1 overflow-hidden">
-        {/* Main content - Slideshow (larger) */}
+        {/* Left side - Directory with first half of floors */}
+        <div className="w-1/4 border-r border-blue-100 bg-white shadow-lg overflow-y-auto">
+          <Directory bureaus={bureauData} showOnlyFloors={leftFloors} />
+        </div>
+
+        {/* Center - Main content - Slideshow */}
         <div className="flex-1 p-6 overflow-hidden">
           <Slideshow bureaus={bureauData} />
         </div>
 
-        {/* Sidebar - Directory and Info Panel (smaller) */}
-        <div className="w-80 flex flex-col border-l border-blue-100 bg-white shadow-lg">
+        {/* Right side - Directory with second half of floors and Info Panel */}
+        <div className="w-1/4 flex flex-col border-l border-blue-100 bg-white shadow-lg">
           <div className="flex-1 overflow-y-auto">
-            <Directory bureaus={bureauData} />
+            <Directory bureaus={bureauData} showOnlyFloors={rightFloors} alternateStyle={true} />
           </div>
           <div className="border-t border-blue-100">
             <InfoPanel currentTime={currentTime} />

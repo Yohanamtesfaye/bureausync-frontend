@@ -32,3 +32,81 @@
 .duration-800 {
   transition-duration: 800ms;
 }
+
+/* Enhanced styles */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Pulse animation for important elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(26, 86, 219, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(26, 86, 219, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(26, 86, 219, 0);
+  }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Enhanced scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #e0e7ff;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
+}
+
+/* Personnel card styles */
+.personnel-card {
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.personnel-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.personnel-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.personnel-image::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(10, 61, 145, 0.7), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.personnel-card:hover .personnel-image::after {
+  opacity: 1;
+}

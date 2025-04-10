@@ -41,7 +41,7 @@ const Header = ({ currentTime }) => {
           <img src={Logo} alt="" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-blue-800">የፌደራል ማረሚያ ቤት ኮሚሽን</h1>
+          <h1 className="text-2xl font-bold text-blue-800">ፌዴራል ማረሚያ ቤት ኮሚሽን የቃሊቲ ማረሚያ ማዕከል</h1>
           <p className="text-sm text-blue-600">{greeting}, እንኳን ወደ ተቋማችን በሰላም መጡ</p>
         </div>
       </div>

@@ -24,20 +24,21 @@ body {
 
 /* Custom scrollbar for directory */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #e0e7ff;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e40af;
-  border-radius: 3px;
+  background: #3b82f6;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1e3a8a;
+  background: #2563eb;
 }
 
 /* Animations */
@@ -69,4 +70,29 @@ body {
 
 .animate-slideIn {
   animation: slideIn 0.5s ease-out forwards;
+}
+
+/* Enhanced animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Gradient text */
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, #3b82f6, #2563eb);
 }
