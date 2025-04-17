@@ -110,3 +110,58 @@
 .personnel-card:hover .personnel-image::after {
   opacity: 1;
 }
+
+/* Promotion page styles */
+.event-card {
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.event-card:hover {
+  border-left-color: #2563eb;
+  transform: translateX(3px);
+}
+
+.achievement-icon {
+  transition: all 0.3s ease;
+}
+
+.achievement-card:hover .achievement-icon {
+  transform: scale(1.1);
+}
+
+/* Featured promotion styles */
+.featured-promotion {
+  position: relative;
+  overflow: hidden;
+}
+
+.featured-promotion::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to right, rgba(10, 61, 145, 0.1), transparent);
+  pointer-events: none;
+}
+
+/* Calendar date styles */
+.calendar-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.calendar-date .day {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.calendar-date .month {
+  font-size: 0.875rem;
+}

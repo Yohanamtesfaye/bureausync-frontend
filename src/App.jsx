@@ -5,12 +5,23 @@ import Directory from "./components/Directory"
 import Slideshow from "./components/Slideshow"
 import InfoPanel from "./components/InfoPanel"
 import Header from "./components/Header"
+import AdminPage from "./components/admin/AdminPage"
 import { bureauData } from "./data/bureauData"
 import "./App.css"
 
 const App = () => {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showSplash, setShowSplash] = useState(true)
+  const [isAdminMode, setIsAdminMode] = useState(false)
+
+  // Check if we're in admin mode based on URL
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path === "/admin") {
+      setIsAdminMode(true)
+      setShowSplash(false) // Skip splash screen in admin mode
+    }
+  }, [])
 
   // Update time every second
   useEffect(() => {
@@ -42,6 +53,11 @@ const App = () => {
   }
 
   const { leftFloors, rightFloors } = getFloors()
+
+  // If in admin mode, show the admin interface
+  if (isAdminMode) {
+    return <AdminPage />
+  }
 
   if (showSplash) {
     return (
