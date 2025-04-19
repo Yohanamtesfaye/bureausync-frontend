@@ -1,16 +1,15 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Phone, MapPin, Briefcase, Award, Star, Calendar, Trophy, Bell } from "lucide-react"
+import { Phone, MapPin, Briefcase, Award, Star } from "lucide-react"
 import { leadershipData } from "../data/leadershipData"
-import { promotionData } from "../data/promotionData"
 
 const Slideshow = ({ bureaus }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [direction, setDirection] = useState("next")
 
-  // Add Vision and Mission slide, Leadership slide, and Promotion slide
+  // Add Vision and Mission slide and Leadership slide (removed Promotion slide)
   const slides = useMemo(
     () => [
       {
@@ -29,10 +28,6 @@ const Slideshow = ({ bureaus }) => {
           title: "የኮሚሽኑ ከፍተኛ አመራሮች",
           leaders: leadershipData,
         },
-      },
-      {
-        type: "promotion",
-        content: promotionData,
       },
       ...bureaus.map((bureau) => ({ type: "bureau", content: bureau })),
     ],
@@ -104,8 +99,6 @@ const Slideshow = ({ bureaus }) => {
         return "ራዕይና ተልዕኮ"
       case "leadership":
         return "የኮሚሽኑ ከፍተኛ አመራሮች"
-      case "promotion":
-        return "ማስታወቂያዎች እና ዝግጅቶች"
       default:
         return "የቢሮ መረጃ"
     }
@@ -216,102 +209,6 @@ const Slideshow = ({ bureaus }) => {
                       <div className="p-3 text-center bg-gradient-to-b from-blue-50 to-white flex-1 flex flex-col justify-between">
                         <h5 className="text-lg font-bold text-blue-800 mb-1 line-clamp-2">{leader.name}</h5>
                         <div className="text-blue-600 text-sm font-medium">{leader.position}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : currentSlide.type === "promotion" ? (
-            <div className="w-full max-w-5xl p-6 rounded-lg border border-blue-200 bg-white shadow-xl animate-fadeIn">
-              {/* Promotion Header */}
-              <div className="text-center mb-8">
-                <div className="bg-blue-600 text-white inline-block px-6 py-2 rounded-full text-lg font-medium mb-4">
-                  <Bell className="w-5 h-5 inline-block mr-2" />
-                  ማስታወቂያዎች እና ዝግጅቶች
-                </div>
-              </div>
-
-              {/* Featured Promotion */}
-              {currentSlide.content.featured && (
-                <div className="mb-8 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-md">
-                  <div className="flex flex-col md:flex-row gap-6 items-center">
-                    <div className="w-full md:w-1/3 relative">
-                      <div className="aspect-video bg-blue-200 rounded-lg overflow-hidden">
-                        <img
-                          src={currentSlide.content.featured.image || `/placeholder.svg?height=300&width=500`}
-                          alt={currentSlide.content.featured.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="absolute -top-3 -right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg pulse">
-                        አዲስ!
-                      </div>
-                    </div>
-                    <div className="w-full md:w-2/3">
-                      <h3 className="text-2xl font-bold text-blue-800 mb-2">{currentSlide.content.featured.title}</h3>
-                      <p className="text-blue-700 mb-3 flex items-center">
-                        <Calendar className="w-5 h-5 mr-2" />
-                        {currentSlide.content.featured.date}
-                      </p>
-                      <p className="text-gray-700 text-lg">{currentSlide.content.featured.description}</p>
-                      {currentSlide.content.featured.location && (
-                        <p className="mt-3 text-blue-700 flex items-center">
-                          <MapPin className="w-5 h-5 mr-2" />
-                          {currentSlide.content.featured.location}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Upcoming Events */}
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-blue-800 mb-4 flex items-center">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  መጪ ዝግጅቶች
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentSlide.content.events.map((event, index) => (
-                    <div
-                      key={index}
-                      className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-all card-hover"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="bg-blue-100 text-blue-800 rounded-lg p-2 flex flex-col items-center justify-center min-w-[60px]">
-                          <span className="text-xl font-bold">{event.day}</span>
-                          <span className="text-sm">{event.month}</span>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-blue-800">{event.title}</h4>
-                          <p className="text-sm text-gray-600">{event.time}</p>
-                          <p className="text-sm text-gray-700 mt-1">{event.location}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Achievements */}
-              <div>
-                <h3 className="text-xl font-bold text-blue-800 mb-4 flex items-center">
-                  <Trophy className="w-5 h-5 mr-2" />
-                  የቅርብ ጊዜ ስኬቶች
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {currentSlide.content.achievements.map((achievement, index) => (
-                    <div
-                      key={index}
-                      className="bg-gradient-to-b from-blue-50 to-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-all card-hover"
-                    >
-                      <div className="text-center">
-                        <div className="inline-block bg-blue-600 text-white rounded-full p-2 mb-3">
-                          <Trophy className="w-5 h-5" />
-                        </div>
-                        <h4 className="font-bold text-blue-800 mb-2">{achievement.title}</h4>
-                        <p className="text-sm text-gray-700">{achievement.description}</p>
                       </div>
                     </div>
                   ))}

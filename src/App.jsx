@@ -6,6 +6,7 @@ import Slideshow from "./components/Slideshow"
 import InfoPanel from "./components/InfoPanel"
 import Header from "./components/Header"
 import AdminPage from "./components/admin/AdminPage"
+import PromotionPanel from "./components/PromotionPanel"
 import { bureauData } from "./data/bureauData"
 import "./App.css"
 
@@ -82,9 +83,20 @@ const App = () => {
           <Directory bureaus={bureauData} showOnlyFloors={leftFloors} />
         </div>
 
-        {/* Center - Main content - Slideshow */}
-        <div className="flex-1 p-6 overflow-hidden">
-          <Slideshow bureaus={bureauData} />
+        {/* Center - Main content - Split between Slideshow and Promotion Panel */}
+        <div className="flex-1 p-4 overflow-hidden flex flex-col">
+          {/* Main content area split into two sections */}
+          <div className="flex flex-1 gap-4 overflow-hidden">
+            {/* Slideshow section */}
+            <div className="w-3/5 bg-white rounded-lg shadow-sm p-4 overflow-hidden">
+              <Slideshow bureaus={bureauData} />
+            </div>
+
+            {/* Promotion section - always visible */}
+            <div className="w-2/5 overflow-hidden">
+              <PromotionPanel />
+            </div>
+          </div>
         </div>
 
         {/* Right side - Directory with second half of floors and Info Panel */}
