@@ -13,7 +13,7 @@ const PromotionPanel = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
 
-  const BASE_URL = "http://localhost:3001"
+  const BASE_URL = "https://bureausync.onrender.com"
 
   // Track window resize for responsive adjustments
   useEffect(() => {

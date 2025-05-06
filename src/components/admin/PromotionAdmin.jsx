@@ -109,7 +109,7 @@ const PromotionAdmin = () => {
   };
 
 
-  const BASE_URL = "http://localhost:3001";
+  const BASE_URL = "https://bureausync.onrender.com";
   const getToken = () => localStorage.getItem("token");
 
   // Fetch data from backend
