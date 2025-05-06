@@ -108,7 +108,6 @@ const PromotionAdmin = () => {
     }
   };
 
-
   const BASE_URL = "http://localhost:3001";
   const getToken = () => localStorage.getItem("token");
 
