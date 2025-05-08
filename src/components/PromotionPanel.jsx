@@ -13,7 +13,7 @@ const PromotionPanel = ({ isLargeScreen = false }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
 
-  const BASE_URL = "http://localhost:3001"
+  const BASE_URL = "https://bureausync-backend.onrender.com"
 
   // Track window resize for responsive adjustments
   useEffect(() => {
@@ -33,61 +33,28 @@ const PromotionPanel = ({ isLargeScreen = false }) => {
         setIsLoading(true)
         setError("")
 
-        const [featuredRes, eventsRes, achievementsRes] = await Promise.all([
-          fetch(`${BASE_URL}/api/public/promotions/featured`),
-          fetch(`${BASE_URL}/api/public/events`),
-          fetch(`${BASE_URL}/api/public/achievements`),
-        ])
-
+        const featuredRes = await fetch(`${BASE_URL}/api/public/promotions/featured`)
+        // console.log(featuredRes)
         if (!isMounted) return
 
-        if (!featuredRes.ok || !eventsRes.ok || !achievementsRes.ok) {
-          throw new Error(`Failed to fetch data: ${featuredRes.status} ${eventsRes.status} ${achievementsRes.status}`)
+        if (!featuredRes.ok) {
+          throw new Error(`Failed to fetch data: ${featuredRes.status}`)
         }
 
-        const [featured, events, achievements] = await Promise.all([
-          featuredRes.json(),
-          eventsRes.json(),
-          achievementsRes.json(),
-        ])
+        const featured = await featuredRes.json()
+        console.log('Featured promotion:', featured)
 
         if (isMounted) {
           setPromotions({
             featured: featured || null,
-            events: events || [],
-            achievements: achievements || [],
+            events: [],
+            achievements: [],
           })
         }
       } catch (err) {
         if (isMounted) {
           console.error("Fetch error:", err)
           setError("Failed to load data. Please try again later.")
-
-          // Set mock data for development/preview
-          setPromotions({
-            featured: {
-              title: "Test Promotion",
-              date: "2025-05-10",
-              description: "Test description",
-              location: "Test location",
-              image: null,
-            },
-            events: [
-              {
-                title: "Test Event",
-                day: "10",
-                month: "May",
-                time: "9:00 AM",
-                location: "Test Location",
-              },
-            ],
-            achievements: [
-              {
-                title: "Test Achievement",
-                description: "Test achievement description",
-              },
-            ],
-          })
         }
       } finally {
         if (isMounted) {
@@ -190,6 +157,10 @@ const PromotionPanel = ({ isLargeScreen = false }) => {
                       }
                       alt={promotions.featured.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = `/placeholder.svg?height=300&width=500`;
+                      }}
                     />
                   </div>
                   <div

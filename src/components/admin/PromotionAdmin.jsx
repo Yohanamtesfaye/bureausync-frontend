@@ -5,10 +5,7 @@ import { useNavigate } from "react-router-dom";
 const PromotionAdmin = () => {
   const [promotions, setPromotions] = useState({
     featured: null,
-    events: [],
-    achievements: [],
   });
-  const [activeTab, setActiveTab] = useState("featured");
   const [editMode, setEditMode] = useState(null);
   const [tempItem, setTempItem] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
@@ -39,7 +36,10 @@ const PromotionAdmin = () => {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to upload image");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to upload image");
+      }
 
       const data = await response.json();
       return data.imageUrl;
@@ -108,59 +108,87 @@ const PromotionAdmin = () => {
     }
   };
 
-  const BASE_URL = "http://localhost:3001";
-  const getToken = () => localStorage.getItem("token");
+  const BASE_URL = "https://bureausync-backend.onrender.com";
+  const getToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+  };
 
   // Fetch data from backend
   useEffect(() => {
+    let isMounted = true;
+
     const fetchData = async () => {
       setIsLoading(true);
       setErrorMessage("");
       try {
         const token = getToken();
         if (!token) {
+          console.log("No token found, redirecting to login");
           navigate("/login");
           return;
         }
 
-        const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-
-        const [featuredRes, eventsRes, achievementsRes] = await Promise.all([
-          fetch(`${BASE_URL}/api/promotions/featured`, { headers }),
-          fetch(`${BASE_URL}/api/events`, { headers }),
-          fetch(`${BASE_URL}/api/achievements`, { headers }),
-        ]);
-
-        if (featuredRes.status === 401 || eventsRes.status === 401 || achievementsRes.status === 401) {
+        // Validate token format
+        if (!token.startsWith("Bearer ")) {
+          console.log("Invalid token format");
           localStorage.removeItem("token");
           navigate("/login");
           return;
         }
 
-        if (!featuredRes.ok || !eventsRes.ok || !achievementsRes.ok) {
-          throw new Error(
-            `Fetch failed: Featured=${featuredRes.status}, Events=${eventsRes.status}, Achievements=${achievementsRes.status}`
-          );
+        const headers = { 
+          Authorization: token,
+          "Content-Type": "application/json" 
+        };
+
+        console.log("Fetching with headers:", headers); // Debug log
+
+        const featuredRes = await fetch(`${BASE_URL}/api/promotions/featured`, { headers });
+
+        if (!isMounted) return;
+
+        if (featuredRes.status === 401 || featuredRes.status === 403) {
+          console.log("Authentication failed, redirecting to login");
+          localStorage.removeItem("token");
+          navigate("/login");
+          return;
+        }
+
+        if (!featuredRes.ok) {
+          const errorData = await featuredRes.json().catch(() => ({}));
+          throw new Error(errorData.message || `Fetch failed: Featured=${featuredRes.status}`);
         }
 
         const featured = await featuredRes.json();
-        const events = await eventsRes.json();
-        const achievements = await achievementsRes.json();
+        console.log("Received featured data:", featured); // Debug log
 
-        setPromotions({
-          featured: featured || null,
-          events: events || [],
-          achievements: achievements || [],
-        });
+        if (isMounted) {
+          setPromotions({
+            featured: featured || null,
+          });
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
-        setErrorMessage("Failed to load data. Please try again.");
+        if (err.message.includes("401") || err.message.includes("403")) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        } else {
+          setErrorMessage("Failed to load data. Please try again.");
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   // Show success message
@@ -192,36 +220,31 @@ const PromotionAdmin = () => {
     setTempItem({ ...promotions.featured });
   };
   // Toggle visibility
-  const handleToggleVisibility = async (type, id, isVisible) => {
+  const handleToggleVisibility = async () => {
     try {
       const token = getToken();
       if (!token) {
         navigate("/login");
         return;
       }
-      const endpoint = `${BASE_URL}/api/${type}/${id}`;
-      const response = await fetch(endpoint, {
+
+      const response = await fetch(`${BASE_URL}/api/promotions/${promotions.featured.id}`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ is_visible: !isVisible }),
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({ is_visible: !promotions.featured.is_visible }),
       });
 
       if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error(`Failed to toggle ${type} visibility`);
+      if (!response.ok) throw new Error("Failed to toggle promotion visibility");
 
-      const updatedItem = await response.json();
-      if (type === "promotions") {
-        setPromotions({ ...promotions, featured: updatedItem });
-      } else {
-        const key = type === "events" ? "events" : "achievements";
-        setPromotions({
-          ...promotions,
-          [key]: promotions[key].map((item) => (item.id === id ? updatedItem : item)),
-        });
-      }
-      showSuccess(`${type.slice(0, -1)} visibility updated!`);
+      const updatedPromotion = await response.json();
+      setPromotions({ ...promotions, featured: updatedPromotion });
+      showSuccess("Promotion visibility updated!");
     } catch (err) {
-      handleApiError(err, `Failed to toggle ${type} visibility.`);
+      handleApiError(err, "Failed to toggle promotion visibility.");
     }
   };
 
@@ -231,233 +254,150 @@ const PromotionAdmin = () => {
     setTempItem(null);
   };
 
-  // Add new event
-  const handleAddEvent = async () => {
-    const newEvent = {
-      title: "New Event",
-      day: new Date().getDate().toString(),
-      month: new Date().toLocaleString("default", { month: "short" }),
-      time: "9:00 AM - 11:00 AM",
-      location: "Location",
-      is_visible: true,
-    };
-
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-      const response = await fetch(`${BASE_URL}/api/events`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(newEvent),
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to add event");
-
-      const addedEvent = await response.json();
-      setPromotions({ ...promotions, events: [...promotions.events, addedEvent] });
-      showSuccess("Event added successfully!");
-    } catch (err) {
-      handleApiError(err, "Failed to add event.");
-    }
-  };
-
-  // Edit event
-  const handleEditEvent = (index) => {
-    setEditMode(`event-${index}`);
-    setTempItem({ ...promotions.events[index] });
-  };
-
-  // Save event
-  const handleSaveEvent = async (index) => {
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-      const response = await fetch(`${BASE_URL}/api/events/${promotions.events[index].id}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(tempItem),
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to update event");
-
-      const updatedEvent = await response.json();
-      const newEvents = [...promotions.events];
-      newEvents[index] = updatedEvent;
-      setPromotions({ ...promotions, events: newEvents });
-      showSuccess("Event updated successfully!");
-      setEditMode(null);
-      setTempItem(null);
-    } catch (err) {
-      handleApiError(err, "Failed to save event.");
-    }
-  };
-
-  // Delete event
-  const handleDeleteEvent = async (index) => {
-    if (!window.confirm("Are you sure you want to delete this event?")) return;
-
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-      const response = await fetch(`${BASE_URL}/api/events/${promotions.events[index].id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to delete event");
-
-      const newEvents = promotions.events.filter((_, i) => i !== index);
-      setPromotions({ ...promotions, events: newEvents });
-      showSuccess("Event deleted successfully!");
-    } catch (err) {
-      handleApiError(err, "Failed to delete event.");
-    }
-  };
-
-  // Add new achievement
-  const handleAddAchievement = async () => {
-    const newAchievement = {
-      title: "New Achievement",
-      description: "Description of the achievement",
-      is_visible: true,
-    };
-
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-      const response = await fetch(`${BASE_URL}/api/achievements`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(newAchievement),
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to add achievement");
-
-      const addedAchievement = await response.json();
-      setPromotions({
-        ...promotions,
-        achievements: [...promotions.achievements, addedAchievement],
-      });
-      showSuccess("Achievement added successfully!");
-    } catch (err) {
-      handleApiError(err, "Failed to add achievement.");
-    }
-  };
-
-  // Edit achievement
-  const handleEditAchievement = (index) => {
-    setEditMode(`achievement-${index}`);
-    setTempItem({ ...promotions.achievements[index] });
-  };
-
-  // Save achievement
-  const handleSaveAchievement = async (index) => {
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-      const response = await fetch(`${BASE_URL}/api/achievements/${promotions.achievements[index].id}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(tempItem),
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to update achievement");
-
-      const updatedAchievement = await response.json();
-      const newAchievements = [...promotions.achievements];
-      newAchievements[index] = updatedAchievement;
-      setPromotions({ ...promotions, achievements: newAchievements });
-      showSuccess("Achievement updated successfully!");
-      setEditMode(null);
-      setTempItem(null);
-    } catch (err) {
-      handleApiError(err, "Failed to save achievement.");
-    }
-  };
-
-  // Delete achievement
-  const handleDeleteAchievement = async (index) => {
-    if (!window.confirm("Are you sure you want to delete this achievement?")) return;
-
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-      const response = await fetch(`${BASE_URL}/api/achievements/${promotions.achievements[index].id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to delete achievement");
-
-      const newAchievements = promotions.achievements.filter((_, i) => i !== index);
-      setPromotions({ ...promotions, achievements: newAchievements });
-      showSuccess("Achievement deleted successfully!");
-    } catch (err) {
-      handleApiError(err, "Failed to delete achievement.");
-    }
-  };
-
   // Add new featured promotion
   const handleAddPromotion = async () => {
-    const newPromotion = {
-      title: "New Promotion",
-      date: new Date().toLocaleDateString(),
-      description: "Description of the promotion",
-      location: "Location",
-      is_visible: true,
-      is_featured: true,
-      image: null
-    };
-
     try {
       const token = getToken();
       if (!token) {
         navigate("/login");
         return;
       }
+
+      // Upload image if selected
+      let imageUrl = null;
+      if (selectedImage) {
+        imageUrl = await handleImageUpload(selectedImage);
+        if (!imageUrl) return;
+      }
+
+      const newPromotion = {
+        title: "New Promotion",
+        date: new Date().toLocaleDateString(),
+        description: "Description of the promotion",
+        location: "Location",
+        is_visible: true,
+        is_featured: true,
+        image: imageUrl
+      };
+
+      console.log('Sending promotion data:', newPromotion);
+
       const response = await fetch(`${BASE_URL}/api/promotions`, {
         method: "POST",
         headers: { 
-          Authorization: `Bearer ${token}`,
+          Authorization: token,
           "Content-Type": "application/json" 
         },
         body: JSON.stringify(newPromotion),
       });
 
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to add promotion");
+      if (response.status === 401) {
+        console.log('Authentication failed - token expired or invalid');
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
 
-      const addedPromotion = await response.json();
-      setPromotions({ ...promotions, featured: addedPromotion });
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Permission denied:', errorData);
+        throw new Error(errorData.message || "You don't have admin privileges to add promotions");
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to add promotion");
+      }
+
+      // Fetch the latest featured promotion
+      const featuredResponse = await fetch(`${BASE_URL}/api/promotions/featured`, {
+        headers: { 
+          Authorization: token,
+          "Content-Type": "application/json" 
+        }
+      });
+
+      console.log('Featured response status:', featuredResponse.status);
+      
+      if (!featuredResponse.ok) {
+        throw new Error("Failed to fetch updated featured promotion");
+      }
+
+      const featuredPromotion = await featuredResponse.json();
+      console.log('Parsed featured promotion:', featuredPromotion);
+
+      // Create a new state object
+      const updatedPromotions = {
+        featured: {
+          ...featuredPromotion,
+          is_featured: Boolean(featuredPromotion.is_featured),
+          is_visible: Boolean(featuredPromotion.is_visible)
+        }
+      };
+      
+      console.log('Setting new promotions state:', updatedPromotions);
+      
+      // Update state and force a re-render
+      setPromotions(updatedPromotions);
+      
+      // Reset form state
+      setSelectedImage(null);
+      setImagePreview("");
+      setEditMode(null);
+      setTempItem(null);
+
       showSuccess("Promotion added successfully!");
     } catch (err) {
-      handleApiError(err, "Failed to add promotion.");
+      console.error("Error adding promotion:", err);
+      setErrorMessage(err.message || "Failed to add promotion. Please try again.");
     }
   };
+
+  // Add useEffect to monitor promotions state changes
+  useEffect(() => {
+    console.log('Promotions state updated:', promotions);
+    console.log('Featured promotion:', promotions.featured);
+  }, [promotions]);
+
+  // Add useEffect to fetch initial data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const response = await fetch(`${BASE_URL}/api/promotions/featured`, {
+          headers: { 
+            Authorization: token,
+            "Content-Type": "application/json" 
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch featured promotion");
+        }
+
+        const featuredPromotion = await response.json();
+        console.log('Initial featured promotion:', featuredPromotion);
+
+        setPromotions({
+          featured: {
+            ...featuredPromotion,
+            is_featured: Boolean(featuredPromotion.is_featured),
+            is_visible: Boolean(featuredPromotion.is_visible)
+          }
+        });
+      } catch (err) {
+        console.error("Error fetching initial data:", err);
+        setErrorMessage("Failed to load promotions. Please try again.");
+      }
+    };
+
+    fetchData();
+  }, [navigate]);
 
   // Edit featured promotion
   const handleEditPromotion = () => {
@@ -505,61 +445,6 @@ const PromotionAdmin = () => {
       setImagePreview("");
     } catch (err) {
       handleApiError(err, "Failed to save promotion.");
-    }
-  };
-
-  // Toggle promotion visibility
-  const handleTogglePromotionVisibility = async () => {
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
-      const response = await fetch(`${BASE_URL}/api/promotions/${promotions.featured.id}`, {
-        method: "PATCH",
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json" 
-        },
-        body: JSON.stringify({ is_visible: !promotions.featured.is_visible }),
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to toggle promotion visibility");
-
-      const updatedPromotion = await response.json();
-      setPromotions({ ...promotions, featured: updatedPromotion });
-      showSuccess("Promotion visibility updated!");
-    } catch (err) {
-      handleApiError(err, "Failed to toggle promotion visibility.");
-    }
-  };
-
-  // Delete promotion
-  const handleDeletePromotion = async () => {
-    if (!window.confirm("Are you sure you want to delete this promotion?")) return;
-
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
-      const response = await fetch(`${BASE_URL}/api/promotions/${promotions.featured.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.status === 401) throw new Error("Unauthorized");
-      if (!response.ok) throw new Error("Failed to delete promotion");
-
-      setPromotions({ ...promotions, featured: null });
-      showSuccess("Promotion deleted successfully!");
-    } catch (err) {
-      handleApiError(err, "Failed to delete promotion.");
     }
   };
 
@@ -636,461 +521,154 @@ const PromotionAdmin = () => {
             </div>
           ) : (
             <div className="bg-white shadow rounded-lg overflow-hidden">
-              <div className="border-b border-gray-200">
-                <nav className="flex -mb-px">
-                  <button
-                    onClick={() => setActiveTab("featured")}
-                    className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                      activeTab === "featured"
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    Featured Promotion
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("events")}
-                    className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                      activeTab === "events"
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    Events
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("achievements")}
-                    className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                      activeTab === "achievements"
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    Achievements
-                  </button>
-                </nav>
-              </div>
-
               <div className="p-6">
-                {/* Featured Promotion Tab */}
-                {activeTab === "featured" && (
-                  <div>
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                        <Bell className="w-5 h-5 mr-2 text-blue-600" />
-                        Featured Promotion
-                      </h2>
-                      <button
-                        onClick={handleAddPromotion}
-                        className="flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add Promotion
-                      </button>
-                    </div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                    <Bell className="w-5 h-5 mr-2 text-blue-600" />
+                    Featured Promotion
+                  </h2>
+                  <button
+                    onClick={handleAddPromotion}
+                    className="flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Promotion
+                  </button>
+                </div>
 
-                    {promotions.featured ? (
-                      editMode === "featured" ? (
-                        <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                            <input
-                              type="text"
-                              value={tempItem.title}
-                              onChange={(e) => setTempItem({ ...tempItem, title: e.target.value })}
-                              className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                {promotions.featured ? (
+                  editMode === "featured" ? (
+                    <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input
+                          type="text"
+                          value={tempItem.title}
+                          onChange={(e) => setTempItem({ ...tempItem, title: e.target.value })}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input
+                          type="text"
+                          value={tempItem.date}
+                          onChange={(e) => setTempItem({ ...tempItem, date: e.target.value })}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea
+                          value={tempItem.description}
+                          onChange={(e) => setTempItem({ ...tempItem, description: e.target.value })}
+                          rows={4}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                        <input
+                          type="text"
+                          value={tempItem.location}
+                          onChange={(e) => setTempItem({ ...tempItem, location: e.target.value })}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current.click()}
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          {selectedImage ? "Change Image" : "Select Image"}
+                        </button>
+                        {(imagePreview || tempItem.image) && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-500 mb-1">Image Preview:</p>
+                            <img
+                              src={imagePreview || `${BASE_URL}${tempItem.image}`}
+                              alt="Preview"
+                              className="h-40 object-contain rounded-md border border-gray-200"
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                            <input
-                              type="text"
-                              value={tempItem.date}
-                              onChange={(e) => setTempItem({ ...tempItem, date: e.target.value })}
-                              className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        )}
+                      </div>
+                      <div className="flex justify-end space-x-2 pt-2">
+                        <button
+                          onClick={handleSavePromotion}
+                          className="flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+                        >
+                          <Save className="w-4 h-4 mr-1" />
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-md">
+                      <div className="flex flex-col md:flex-row gap-6 items-center">
+                        <div className="w-full md:w-1/3 relative">
+                          <div className="aspect-video bg-blue-200 rounded-lg overflow-hidden">
+                            <img
+                              src={promotions.featured.image || `/placeholder.svg?height=300&width=500`}
+                              alt={promotions.featured.title}
+                              className="w-full h-full object-cover"
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea
-                              value={tempItem.description}
-                              onChange={(e) => setTempItem({ ...tempItem, description: e.target.value })}
-                              rows={4}
-                              className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
+                          <div className="absolute -top-3 -right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                            {promotions.featured.is_visible ? "Visible" : "Hidden"}
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                            <input
-                              type="text"
-                              value={tempItem.location}
-                              onChange={(e) => setTempItem({ ...tempItem, location: e.target.value })}
-                              className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
-                            <input
-                              type="file"
-                              ref={fileInputRef}
-                              onChange={handleFileChange}
-                              accept="image/*"
-                              className="hidden"
-                            />
+                        </div>
+                        <div className="w-full md:w-2/3">
+                          <h3 className="text-2xl font-bold text-blue-800 mb-2">{promotions.featured.title}</h3>
+                          <p className="text-blue-700 mb-3 flex items-center">
+                            <Calendar className="w-5 h-5 mr-2" />
+                            {promotions.featured.date}
+                          </p>
+                          <p className="text-gray-700 text-lg">{promotions.featured.description}</p>
+                          {promotions.featured.location && (
+                            <p className="mt-3 text-blue-700 flex items-center">
+                              <MapPin className="w-5 h-5 mr-2" />
+                              {promotions.featured.location}
+                            </p>
+                          )}
+                          <div className="mt-4 flex space-x-2">
                             <button
-                              type="button"
-                              onClick={() => fileInputRef.current.click()}
-                              className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              onClick={handleToggleVisibility}
+                              className={`p-2 ${
+                                promotions.featured.is_visible ? "text-yellow-600 hover:bg-yellow-50" : "text-green-600 hover:bg-green-50"
+                              } rounded`}
                             >
-                              {selectedImage ? "Change Image" : "Select Image"}
+                              {promotions.featured.is_visible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
-                            {(imagePreview || tempItem.image) && (
-                              <div className="mt-2">
-                                <p className="text-sm text-gray-500 mb-1">Image Preview:</p>
-                                <img
-                                  src={imagePreview || `${BASE_URL}${tempItem.image}`}
-                                  alt="Preview"
-                                  className="h-40 object-contain rounded-md border border-gray-200"
-                                />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex justify-end space-x-2 pt-2">
                             <button
-                              onClick={handleSavePromotion}
-                              className="flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+                              onClick={handleEditPromotion}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                             >
-                              <Save className="w-4 h-4 mr-1" />
-                              Save
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Cancel
+                              <Edit className="w-5 h-5" />
                             </button>
                           </div>
                         </div>
-                      ) : (
-                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-md">
-                          <div className="flex flex-col md:flex-row gap-6 items-center">
-                            <div className="w-full md:w-1/3 relative">
-                              <div className="aspect-video bg-blue-200 rounded-lg overflow-hidden">
-                                <img
-                                  src={promotions.featured.image || `/placeholder.svg?height=300&width=500`}
-                                  alt={promotions.featured.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <div className="absolute -top-3 -right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                                {promotions.featured.is_visible ? "Visible" : "Hidden"}
-                              </div>
-                            </div>
-                            <div className="w-full md:w-2/3">
-                              <h3 className="text-2xl font-bold text-blue-800 mb-2">{promotions.featured.title}</h3>
-                              <p className="text-blue-700 mb-3 flex items-center">
-                                <Calendar className="w-5 h-5 mr-2" />
-                                {promotions.featured.date}
-                              </p>
-                              <p className="text-gray-700 text-lg">{promotions.featured.description}</p>
-                              {promotions.featured.location && (
-                                <p className="mt-3 text-blue-700 flex items-center">
-                                  <MapPin className="w-5 h-5 mr-2" />
-                                  {promotions.featured.location}
-                                </p>
-                              )}
-                              <div className="mt-4 flex space-x-2">
-                                <button
-                                  onClick={handleTogglePromotionVisibility}
-                                  className={`p-2 ${
-                                    promotions.featured.is_visible ? "text-yellow-600 hover:bg-yellow-50" : "text-green-600 hover:bg-green-50"
-                                  } rounded`}
-                                >
-                                  {promotions.featured.is_visible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                                <button
-                                  onClick={handleEditPromotion}
-                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                                >
-                                  <Edit className="w-5 h-5" />
-                                </button>
-                                <button
-                                  onClick={handleDeletePromotion}
-                                  className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                >
-                                  <Trash className="w-5 h-5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    ) : (
-                      <p className="text-gray-600">No featured promotion available.</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Events Tab */}
-                {activeTab === "events" && (
-                  <div>
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                        <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-                        Events
-                      </h2>
-                      <button
-                        onClick={handleAddEvent}
-                        className="flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add Event
-                      </button>
+                      </div>
                     </div>
-
-                    <div className="space-y-4">
-                      {promotions.events.length === 0 ? (
-                        <p className="text-gray-600">No events available.</p>
-                      ) : (
-                        promotions.events.map((event, index) => (
-                          <div
-                            key={event.id}
-                            className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all"
-                          >
-                            {editMode === `event-${index}` ? (
-                              <div className="space-y-3 bg-blue-50 p-4 rounded-lg">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                  <input
-                                    type="text"
-                                    value={tempItem.title}
-                                    onChange={(e) => setTempItem({ ...tempItem, title: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                  />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Day</label>
-                                    <input
-                                      type="text"
-                                      value={tempItem.day}
-                                      onChange={(e) => setTempItem({ ...tempItem, day: e.target.value })}
-                                      className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-                                    <input
-                                      type="text"
-                                      value={tempItem.month}
-                                      onChange={(e) => setTempItem({ ...tempItem, month: e.target.value })}
-                                      className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                                  <input
-                                    type="text"
-                                    value={tempItem.time}
-                                    onChange={(e) => setTempItem({ ...tempItem, time: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                  <input
-                                    type="text"
-                                    value={tempItem.location}
-                                    onChange={(e) => setTempItem({ ...tempItem, location: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Visible</label>
-                                  <input
-                                    type="checkbox"
-                                    checked={tempItem.is_visible}
-                                    onChange={(e) => setTempItem({ ...tempItem, is_visible: e.target.checked })}
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                  />
-                                </div>
-                                <div className="flex justify-end space-x-2 pt-2">
-                                  <button
-                                    onClick={() => handleSaveEvent(index)}
-                                    className="flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
-                                  >
-                                    <Save className="w-4 h-4 mr-1" />
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={handleCancelEdit}
-                                    className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                                  >
-                                    <X className="w-4 h-4 mr-1" />
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-start gap-3">
-                                  <div className="bg-blue-100 text-blue-800 rounded-lg p-2 flex flex-col items-center justify-center min-w-[60px]">
-                                    <span className="text-xl font-bold">{event.day}</span>
-                                    <span className="text-sm">{event.month}</span>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-bold text-blue-800">{event.title}</h4>
-                                    <p className="text-sm text-gray-600">{event.time}</p>
-                                    <p className="text-sm text-gray-700 mt-1">{event.location}</p>
-                                    <p className="text-sm text-gray-700 mt-1">
-                                      Status: {event.is_visible ? "Visible" : "Hidden"}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex space-x-1">
-                                  <button
-                                    onClick={() => handleToggleVisibility("events", event.id, event.is_visible)}
-                                    className={`p-1 ${
-                                      event.is_visible ? "text-yellow-600 hover:bg-yellow-50" : "text-green-600 hover:bg-green-50"
-                                    } rounded`}
-                                  >
-                                    {event.is_visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                  </button>
-                                  <button
-                                    onClick={() => handleEditEvent(index)}
-                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteEvent(index)}
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                  >
-                                    <Trash className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Achievements Tab */}
-                {activeTab === "achievements" && (
-                  <div>
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                        <Award className="w-5 h-5 mr-2 text-blue-600" />
-                        Achievements
-                      </h2>
-                      <button
-                        onClick={handleAddAchievement}
-                        className="flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add Achievement
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {promotions.achievements.length === 0 ? (
-                        <p className="text-gray-600">No achievements available.</p>
-                      ) : (
-                        promotions.achievements.map((achievement, index) => (
-                          <div
-                            key={achievement.id}
-                            className="bg-gradient-to-b from-blue-50 to-white p-4 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-all"
-                          >
-                            {editMode === `achievement-${index}` ? (
-                              <div className="space-y-3 bg-blue-50 p-4 rounded-lg">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                  <input
-                                    type="text"
-                                    value={tempItem.title}
-                                    onChange={(e) => setTempItem({ ...tempItem, title: e.target.value })}
-                                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                  <textarea
-                                    value={tempItem.description}
-                                    onChange={(e) => setTempItem({ ...tempItem, description: e.target.value })}
-                                    rows={3}
-                                    className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">Visible</label>
-                                  <input
-                                    type="checkbox"
-                                    checked={tempItem.is_visible}
-                                    onChange={(e) => setTempItem({ ...tempItem, is_visible: e.target.checked })}
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                  />
-                                </div>
-                                <div className="flex justify-end space-x-2 pt-2">
-                                  <button
-                                    onClick={() => handleSaveAchievement(index)}
-                                    className="flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
-                                  >
-                                    <Save className="w-4 h-4 mr-1" />
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={handleCancelEdit}
-                                    className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                                  >
-                                    <X className="w-4 h-4 mr-1" />
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="text-center relative">
-                                <div className="absolute top-0 right-0 flex space-x-1">
-                                  <button
-                                    onClick={() => handleToggleVisibility("achievements", achievement.id, achievement.is_visible)}
-                                    className={`p-1 ${
-                                      achievement.is_visible ? "text-yellow-600 hover:bg-yellow-50" : "text-green-600 hover:bg-green-50"
-                                    } rounded`}
-                                  >
-                                    {achievement.is_visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                  </button>
-                                  <button
-                                    onClick={() => handleEditAchievement(index)}
-                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteAchievement(index)}
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                  >
-                                    <Trash className="w-4 h-4" />
-                                  </button>
-                                </div>
-                                <div className="inline-block bg-blue-600 text-white rounded-full p-2 mb-3">
-                                  <Award className="w-5 h-5" />
-                                </div>
-                                <h4 className="font-bold text-blue-800 mb-2">{achievement.title}</h4>
-                                <p className="text-sm text-gray-700">{achievement.description}</p>
-                                <p className="text-sm text-gray-700 mt-1">
-                                  Status: {achievement.is_visible ? "Visible" : "Hidden"}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
+                  )
+                ) : (
+                  <p className="text-gray-600">No featured promotion available.</p>
                 )}
               </div>
             </div>

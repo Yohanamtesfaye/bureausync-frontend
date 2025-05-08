@@ -13,7 +13,7 @@ import "./App.css"
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(true)
-  const [activeDirectoryTab, setActiveDirectoryTab] = useState(0)
+  const [activeSlide, setActiveSlide] = useState(0) // 0: Directory, 1: Slideshow, 2: Promotion
   const [slideDirection, setSlideDirection] = useState("right")
   const [isMobile, setIsMobile] = useState(false)
 
@@ -22,14 +22,8 @@ const App = () => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
-
-    // Initial check
     checkMobile()
-
-    // Add event listener for window resize
     window.addEventListener("resize", checkMobile)
-
-    // Cleanup
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
@@ -38,27 +32,25 @@ const App = () => {
     const timer = setTimeout(() => {
       setShowSplash(false)
     }, 2000)
-
     return () => clearTimeout(timer)
   }, [])
 
-  // Auto-cycle directory tabs every 20 seconds
+  // Auto-cycle slides every 20 seconds
   useEffect(() => {
-    if (showSplash) return // Don't cycle during splash screen
+    if (showSplash) return
 
     const cycleTimer = setInterval(() => {
-      setSlideDirection(activeDirectoryTab === 0 ? "right" : "left")
-      setActiveDirectoryTab((prev) => (prev === 0 ? 1 : 0))
-    }, 20000) // Change every 20 seconds
+      setSlideDirection("right")
+      setActiveSlide((prev) => (prev + 1) % 3)
+    }, 20000)
 
     return () => clearInterval(cycleTimer)
-  }, [activeDirectoryTab, showSplash])
+  }, [showSplash])
 
   // Get unique floors and split them for tabs
   const getFloors = () => {
     const floors = [...new Set(bureauData.map((bureau) => bureau.floor))].sort((a, b) => a - b)
     const midpoint = Math.ceil(floors.length / 2)
-
     return {
       lowerFloors: floors.slice(0, midpoint),
       upperFloors: floors.slice(midpoint),
@@ -67,11 +59,11 @@ const App = () => {
 
   const { lowerFloors, upperFloors } = getFloors()
 
-  // Handle tab change with slide direction
-  const handleTabChange = (tabIndex) => {
-    if (tabIndex !== activeDirectoryTab) {
-      setSlideDirection(tabIndex > activeDirectoryTab ? "right" : "left")
-      setActiveDirectoryTab(tabIndex)
+  // Handle manual slide change
+  const handleSlideChange = (index) => {
+    if (index !== activeSlide) {
+      setSlideDirection(index > activeSlide ? "right" : "left")
+      setActiveSlide(index)
     }
   }
 
@@ -79,67 +71,73 @@ const App = () => {
   const MainLayout = () => (
     <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-white text-gray-800 overflow-hidden">
       <Header />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left side - Directory with tabs for lower and upper floors */}
-        <div
-          className={`${
-            isMobile ? "w-full" : "w-1/3 xl:w-1/4"
-          } border-r-2 border-blue-200 bg-white shadow-lg overflow-hidden flex flex-col`}
-        >
-          <div className="flex border-b-2 border-blue-200">
-            <button
-              className={`flex-1 py-2 text-sm font-bold ${
-                activeDirectoryTab === 0 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
-              }`}
-              onClick={() => handleTabChange(0)}
-            >
-              ታችኛ ፎቆች
-            </button>
-            <button
-              className={`flex-1 py-2 text-sm font-bold ${
-                activeDirectoryTab === 1 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
-              }`}
-              onClick={() => handleTabChange(1)}
-            >
-              ላይኛ ፎቆች
-            </button>
-          </div>
-          <div className="flex-1 overflow-hidden relative">
-            {/* Auto-cycling indicator */}
-            <div className="absolute top-2 right-2 z-20">
-              <div className="w-2 h-2 rounded-full bg-blue-600 opacity-75 animate-pulse"></div>
-            </div>
+      <div className="flex-1 overflow-hidden relative">
+        {/* Auto-cycling indicator */}
+        <div className="absolute top-2 right-2 z-20">
+          <div className="w-2 h-2 rounded-full bg-blue-600 opacity-75 animate-pulse"></div>
+        </div>
 
-            <div
-              className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
-                activeDirectoryTab === 0 ? "translate-x-0" : "-translate-x-full"
+        {/* Slide indicators */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
+          {[0, 1, 2].map((index) => (
+            <button
+              key={index}
+              onClick={() => handleSlideChange(index)}
+              className={`w-3 h-3 rounded-full transition-colors ${
+                index === activeSlide ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
               }`}
-            >
-              <Directory bureaus={bureauData} showOnlyFloors={lowerFloors} />
+            />
+          ))}
+        </div>
+
+        {/* Directory Slide */}
+        <div
+          className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
+            activeSlide === 0 ? "translate-x-0" : activeSlide > 0 ? "-translate-x-full" : "translate-x-full"
+          }`}
+        >
+          <div className="h-full flex flex-col">
+            <div className="flex border-b-2 border-blue-200">
+              <button
+                className={`flex-1 py-2 text-sm font-bold ${
+                  activeSlide === 0 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
+                }`}
+              >
+                ታችኛ ፎቆች
+              </button>
+              <button
+                className={`flex-1 py-2 text-sm font-bold ${
+                  activeSlide === 0 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
+                }`}
+              >
+                ላይኛ ፎቆች
+              </button>
             </div>
-            <div
-              className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
-                activeDirectoryTab === 1 ? "translate-x-0" : "translate-x-full"
-              }`}
-            >
-              <Directory bureaus={bureauData} showOnlyFloors={upperFloors} alternateStyle={true} />
+            <div className="flex-1 overflow-auto">
+              <Directory bureaus={bureauData} showOnlyFloors={lowerFloors} />
             </div>
           </div>
         </div>
 
-        {/* Right side - Main content with Slideshow and Promotion Panel */}
-        <div className={`${isMobile ? "hidden" : "flex-1"} p-2 md:p-4 overflow-hidden flex flex-col`}>
-          {/* Main content area split into two sections */}
-          <div className="flex flex-col lg:flex-row flex-1 gap-2 md:gap-4 overflow-hidden">
-            {/* Slideshow section - slightly smaller */}
-            <div className="lg:w-2/5 bg-white rounded-lg shadow-sm p-2 md:p-4 overflow-hidden">
-              <Slideshow bureaus={bureauData} />
-            </div>
+        {/* Slideshow Slide */}
+        <div
+          className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
+            activeSlide === 1 ? "translate-x-0" : activeSlide > 1 ? "-translate-x-full" : "translate-x-full"
+          }`}
+        >
+          <div className="h-full p-4">
+            <Slideshow bureaus={bureauData} />
+          </div>
+        </div>
 
-            {/* Promotion section - larger */}
-            <div className="lg:w-3/5 mt-2 lg:mt-0 bg-white rounded-lg shadow-md border-2 border-blue-200 overflow-hidden">
-              <PromotionPanel />
-            </div>
+        {/* Promotion Panel Slide */}
+        <div
+          className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
+            activeSlide === 2 ? "translate-x-0" : activeSlide < 2 ? "-translate-x-full" : "translate-x-full"
+          }`}
+        >
+          <div className="h-full p-4">
+            <PromotionPanel />
           </div>
         </div>
       </div>
