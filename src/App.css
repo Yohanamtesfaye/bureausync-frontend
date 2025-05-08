@@ -165,3 +165,101 @@
 .calendar-date .month {
   font-size: 0.875rem;
 }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Prevent page refresh flicker */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Progress bar animation for auto-cycling */
+.progress-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.8));
+  animation: progress 10s linear infinite;
+  transform-origin: left;
+}
+
+@keyframes progress {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+}
+
+/* Transition animations */
+.transition-all {
+  transition-property: all;
+}
+
+.duration-500 {
+  transition-duration: 500ms;
+}
+
+.duration-800 {
+  transition-duration: 800ms;
+}
+
+.ease-in-out {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* TV and large screen optimizations */
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+  }
+
+  .progress-bar::after {
+    height: 4px;
+  }
+}
+
+/* 4K screen optimizations */
+@media (min-width: 3840px) {
+  html {
+    font-size: 24px;
+  }
+
+  .progress-bar::after {
+    height: 6px;
+  }
+}

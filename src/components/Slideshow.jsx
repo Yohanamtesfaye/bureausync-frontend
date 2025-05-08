@@ -182,10 +182,10 @@ const Slideshow = ({ bureaus }) => {
 
               <div className="relative z-10 w-full max-w-5xl">
                 <div className="flex flex-col items-center mb-3 md:mb-6">
-                  <div className="bg-white text-blue-800 px-4 md:px-8 py-2 md:py-3 rounded-full text-sm md:text-lg font-medium mb-3 md:mb-6 shadow-lg flex items-center">
+                  {/* <div className="bg-white text-blue-800 px-4 md:px-8 py-2 md:py-3 rounded-full text-sm md:text-lg font-medium mb-3 md:mb-6 shadow-lg flex items-center">
                     <Award className="w-4 h-4 md:w-6 md:h-6 mr-2 md:mr-3" />
                     ዋና መስሪያ ቤት ስትራቴጂክ አመራሮችን
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="flex flex-wrap justify-center items-stretch gap-2 md:gap-4 w-full">
@@ -195,11 +195,11 @@ const Slideshow = ({ bureaus }) => {
                       className={`${getLeaderCardWidth()} bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all border border-blue-100 flex flex-col`}
                     >
                       {/* Leader image at top */}
-                      <div className="relative w-full pt-[100%]">
+                      <div className="relative w-full pt-[50%]">
                         {" "}
                         {/* Aspect ratio 1:1 */}
                         <img
-                          src={leader.image || `/placeholder.svg?height=300&width=300`}
+                          src={leader.image || `/placeholder.svg?height=200&width=200`}
                           alt={leader.name}
                           className="absolute inset-0 w-full h-full object-cover"
                           onError={(e) => {
@@ -216,7 +216,7 @@ const Slideshow = ({ bureaus }) => {
 
                       {/* Leader details below image */}
                       <div className="p-2 md:p-3 text-center bg-gradient-to-b from-blue-50 to-white flex-1 flex flex-col justify-between">
-                        <h5 className="text-sm md:text-lg font-bold text-blue-800 mb-1 line-clamp-2">{leader.name}</h5>
+                        <h5 className="text-sm md:text-lg font-bold text-blue-800 line-clamp-2">{leader.name}</h5>
                         <div className="text-blue-600 text-xs md:text-sm font-medium line-clamp-2">
                           {leader.position}
                         </div>
@@ -250,7 +250,7 @@ const Slideshow = ({ bureaus }) => {
                         className="flex flex-col md:flex-row bg-blue-50 mb-3 md:mb-5 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all"
                       >
                         {/* Larger image on the left */}
-                        <div className="w-full md:w-1/3 relative">
+                        <div className="w-full md: h-1/2 md:w-1/6 relative">
                           <img
                             src={person.image || `/placeholder.svg?height=300&width=300`}
                             alt={person.name}
@@ -261,13 +261,13 @@ const Slideshow = ({ bureaus }) => {
                             }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-900/70 to-transparent p-1 md:p-2">
-                            <p className="text-white font-bold text-sm md:text-md">{person.name}</p>
+                            <p className="text-white font-bold text-sm">{person.name}</p>
                           </div>
                         </div>
 
                         {/* Details on the right */}
                         <div className="w-full md:w-2/3 p-2 md:p-6 flex flex-col justify-center">
-                          <h5 className="text-base md:text-2xl font-bold text-blue-800 mb-1 md:mb-2">{person.name}</h5>
+                          <h5 className="text-base md:text-md font-bold text-blue-800 mb-1 md:mb-2">{person.name}</h5>
 
                           <div className="space-y-1 md:space-y-3">
                             <div className="flex items-center text-blue-700">

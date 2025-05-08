@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-const Directory = ({ bureaus, showOnlyFloors = null, alternateStyle = false }) => {
+const Directory = ({ bureaus, showOnlyFloors = null, alternateStyle = false, screenSize = "md" }) => {
   const [activeFloor, setActiveFloor] = useState(null)
   const [autoScrolling, setAutoScrolling] = useState(false)
 
@@ -45,15 +45,21 @@ const Directory = ({ bureaus, showOnlyFloors = null, alternateStyle = false }) =
 
   return (
     <div className={`h-full overflow-y-auto ${alternateStyle ? "bg-blue-50" : ""}`}>
-      <div className="p-1 sticky top-0 z-10 bg-white border-b-2 border-blue-200">
+      <div className={`sticky top-0 z-10 bg-white border-b-2 border-blue-200 ${screenSize === "tv" ? "p-3" : "p-1"}`}>
         <div className="flex justify-center mb-1 gap-1 flex-wrap">
           {floors.map((floor) => (
             <button
               key={floor}
-              className={`px-2 py-1 rounded-full text-sm font-bold transition-all mb-1 ${
+              className={`rounded-full font-bold transition-all mb-1 ${
                 activeFloor === Number.parseInt(floor)
                   ? `${alternateStyle ? "bg-blue-700" : "bg-blue-600"} text-white shadow-md`
                   : `${alternateStyle ? "bg-blue-200" : "bg-blue-100"} text-blue-800 hover:bg-blue-200`
+              } ${
+                screenSize === "tv"
+                  ? "text-xl px-4 py-2"
+                  : screenSize === "lg"
+                    ? "text-lg px-3 py-1.5"
+                    : "text-sm px-2 py-1"
               }`}
               onClick={() => setActiveFloor(activeFloor === Number.parseInt(floor) ? null : Number.parseInt(floor))}
             >
@@ -63,43 +69,87 @@ const Directory = ({ bureaus, showOnlyFloors = null, alternateStyle = false }) =
         </div>
       </div>
 
-      <div className="p-1 space-y-1">
+      <div
+        className={`${screenSize === "tv" ? "p-3 space-y-3" : screenSize === "lg" ? "p-2 space-y-2" : "p-1 space-y-1"}`}
+      >
         {(activeFloor && floors.includes(activeFloor.toString()) ? [activeFloor.toString()] : floors).map((floor) => (
           <div key={floor} className="animate-fadeIn">
             <h3
-              className={`text-sm font-bold mb-1 text-blue-800 ${
-                alternateStyle ? "bg-blue-100" : "bg-blue-50"
-              } px-2 py-1 rounded-md flex items-center sticky top-[48px] z-10`}
+              className={`font-bold text-blue-800 ${alternateStyle ? "bg-blue-100" : "bg-blue-50"} rounded-md flex items-center sticky top-[48px] z-10 ${
+                screenSize === "tv"
+                  ? "text-2xl mb-3 px-4 py-3"
+                  : screenSize === "lg"
+                    ? "text-xl mb-2 px-3 py-2"
+                    : "text-sm mb-1 px-2 py-1"
+              }`}
             >
               <span
                 className={`${
                   alternateStyle ? "bg-blue-700" : "bg-blue-600"
-                } text-white rounded-full w-5 h-5 inline-flex items-center justify-center mr-2 text-xs font-bold`}
+                } text-white rounded-full inline-flex items-center justify-center mr-2 font-bold ${
+                  screenSize === "tv"
+                    ? "w-8 h-8 text-lg"
+                    : screenSize === "lg"
+                      ? "w-6 h-6 text-base"
+                      : "w-5 h-5 text-xs"
+                }`}
               >
                 {floor}
               </span>
               {floor}ኛ ፎቅ
             </h3>
 
-            <div className="grid grid-cols-1 gap-1">
+            <div
+              className={`grid gap-${screenSize === "tv" ? "4" : screenSize === "lg" ? "3" : "1"} ${
+                screenSize === "tv" || screenSize === "lg" ? "grid-cols-2" : "grid-cols-1"
+              }`}
+            >
               {groupedBureaus[floor].map((bureau) => (
                 <div
                   key={bureau.id}
-                  className={`p-2 rounded-md ${
+                  className={`rounded-md ${
                     alternateStyle ? "bg-blue-50 border-blue-200" : "bg-white border-blue-100"
-                  } border-2 shadow-sm hover:shadow-md transition-all hover:border-blue-300 card-hover`}
+                  } border-2 shadow-sm hover:shadow-md transition-all hover:border-blue-300 card-hover ${
+                    screenSize === "tv" ? "p-4" : screenSize === "lg" ? "p-3" : "p-2"
+                  }`}
                 >
                   <div className="flex justify-between items-center">
                     <div className="overflow-hidden flex-1 pr-2">
                       <div className="flex items-center">
-                        <span className="font-bold text-blue-800 text-sm mr-2">ቢሮ {bureau.room}</span>
-                        <span className="text-gray-700 text-sm font-medium truncate">{bureau.name}</span>
+                        <span
+                          className={`font-bold text-blue-800 mr-2 ${
+                            screenSize === "tv" ? "text-lg" : screenSize === "lg" ? "text-base" : "text-sm"
+                          }`}
+                        >
+                          ቢሮ {bureau.room}
+                        </span>
+                        <span
+                          className={`text-gray-700 font-medium truncate ${
+                            screenSize === "tv" ? "text-lg" : screenSize === "lg" ? "text-base" : "text-sm"
+                          }`}
+                        >
+                          {bureau.name}
+                        </span>
                       </div>
                       {bureau.description && (
-                        <p className="text-xs font-medium text-gray-600 truncate">{bureau.description}</p>
+                        <p
+                          className={`font-medium text-gray-600 truncate ${
+                            screenSize === "tv" ? "text-base" : screenSize === "lg" ? "text-sm" : "text-xs"
+                          }`}
+                        >
+                          {bureau.description}
+                        </p>
                       )}
                       {bureau.personnel && bureau.personnel.length > 0 && (
-                        <div className="text-xs text-blue-600 font-medium mt-1">
+                        <div
+                          className={`text-blue-600 font-medium ${
+                            screenSize === "tv"
+                              ? "text-sm mt-2"
+                              : screenSize === "lg"
+                                ? "text-xs mt-1.5"
+                                : "text-xs mt-1"
+                          }`}
+                        >
                           <span className="font-bold">ሰራተኞች:</span> {bureau.personnel.map((p) => p.name).join(", ")}
                         </div>
                       )}
@@ -107,7 +157,13 @@ const Directory = ({ bureaus, showOnlyFloors = null, alternateStyle = false }) =
                     <div
                       className={`${
                         alternateStyle ? "bg-blue-100" : "bg-blue-50"
-                      } text-blue-800 rounded-full min-w-[2rem] min-h-[2rem] w-8 h-8 flex items-center justify-center font-bold text-base ml-1 flex-shrink-0 border border-blue-200`}
+                      } text-blue-800 rounded-full flex items-center justify-center font-bold ml-1 flex-shrink-0 border border-blue-200 ${
+                        screenSize === "tv"
+                          ? "min-w-[3rem] min-h-[3rem] w-12 h-12 text-xl"
+                          : screenSize === "lg"
+                            ? "min-w-[2.5rem] min-h-[2.5rem] w-10 h-10 text-lg"
+                            : "min-w-[2rem] min-h-[2rem] w-8 h-8 text-base"
+                      }`}
                     >
                       {bureau.room}
                     </div>
