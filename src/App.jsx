@@ -13,9 +13,10 @@ import "./App.css"
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(true)
-  const [activeSlide, setActiveSlide] = useState(0) // 0: Directory, 1: Slideshow, 2: Promotion
+  const [activeSlide, setActiveSlide] = useState(0) // 0: Slideshow, 1: Promotion
   const [slideDirection, setSlideDirection] = useState("right")
   const [isMobile, setIsMobile] = useState(false)
+  const [activeDirectoryTab, setActiveDirectoryTab] = useState(0)
 
   // Check for mobile screen size
   useEffect(() => {
@@ -41,7 +42,7 @@ const App = () => {
 
     const cycleTimer = setInterval(() => {
       setSlideDirection("right")
-      setActiveSlide((prev) => (prev + 1) % 3)
+      setActiveSlide((prev) => (prev + 1) % 2)
     }, 20000)
 
     return () => clearInterval(cycleTimer)
@@ -71,74 +72,77 @@ const App = () => {
   const MainLayout = () => (
     <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-white text-gray-800 overflow-hidden">
       <Header />
-      <div className="flex-1 overflow-hidden relative">
-        {/* Auto-cycling indicator */}
-        <div className="absolute top-2 right-2 z-20">
-          <div className="w-2 h-2 rounded-full bg-blue-600 opacity-75 animate-pulse"></div>
-        </div>
-
-        {/* Slide indicators */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
-          {[0, 1, 2].map((index) => (
+      <div className="flex-1 overflow-hidden flex">
+        {/* Fixed Directory Section */}
+        <div className="w-1/3 border-r border-blue-200 flex flex-col">
+          <div className="flex border-b-2 border-blue-200">
             <button
-              key={index}
-              onClick={() => handleSlideChange(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                index === activeSlide ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
+              onClick={() => setActiveDirectoryTab(0)}
+              className={`flex-1 py-2 text-sm font-bold ${
+                activeDirectoryTab === 0 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
               }`}
-            />
-          ))}
+            >
+              ታችኛ ፎቆች
+            </button>
+            <button
+              onClick={() => setActiveDirectoryTab(1)}
+              className={`flex-1 py-2 text-sm font-bold ${
+                activeDirectoryTab === 1 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
+              }`}
+            >
+              ላይኛ ፎቆች
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <Directory bureaus={bureauData} showOnlyFloors={activeDirectoryTab === 0 ? lowerFloors : upperFloors} />
+          </div>
         </div>
 
-        {/* Directory Slide */}
-        <div
-          className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
-            activeSlide === 0 ? "translate-x-0" : activeSlide > 0 ? "-translate-x-full" : "translate-x-full"
-          }`}
-        >
-          <div className="h-full flex flex-col">
-            <div className="flex border-b-2 border-blue-200">
+        {/* Slideshow and Promotion Section */}
+        <div className="flex-1 relative">
+          {/* Auto-cycling indicator */}
+          <div className="absolute top-2 right-2 z-20">
+            <div className="w-2 h-2 rounded-full bg-blue-600 opacity-75 animate-pulse"></div>
+          </div>
+
+          {/* Slide indicators */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
+            {[0, 1].map((index) => (
               <button
-                className={`flex-1 py-2 text-sm font-bold ${
-                  activeSlide === 0 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
+                key={index}
+                onClick={() => handleSlideChange(index)}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  index === activeSlide ? "bg-blue-600" : "bg-gray-300 hover:bg-gray-400"
                 }`}
-              >
-                ታችኛ ፎቆች
-              </button>
-              <button
-                className={`flex-1 py-2 text-sm font-bold ${
-                  activeSlide === 0 ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-800 hover:bg-blue-100"
-                }`}
-              >
-                ላይኛ ፎቆች
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <Directory bureaus={bureauData} showOnlyFloors={lowerFloors} />
-            </div>
+              />
+            ))}
           </div>
-        </div>
 
-        {/* Slideshow Slide */}
-        <div
-          className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
-            activeSlide === 1 ? "translate-x-0" : activeSlide > 1 ? "-translate-x-full" : "translate-x-full"
-          }`}
-        >
-          <div className="h-full p-4">
-            <Slideshow bureaus={bureauData} />
-          </div>
-        </div>
+          {/* Slideshow Slide - Only show when active */}
+          {activeSlide === 0 && (
+            <div
+              className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
+                activeSlide === 0 ? "translate-x-0" : "-translate-x-full"
+              }`}
+            >
+              <div className="h-full">
+                <Slideshow bureaus={bureauData} />
+              </div>
+            </div>
+          )}
 
-        {/* Promotion Panel Slide */}
-        <div
-          className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
-            activeSlide === 2 ? "translate-x-0" : activeSlide < 2 ? "-translate-x-full" : "translate-x-full"
-          }`}
-        >
-          <div className="h-full p-4">
-            <PromotionPanel />
-          </div>
+          {/* Promotion Panel Slide - Only show when active */}
+          {activeSlide === 1 && (
+            <div
+              className={`absolute inset-0 transition-transform duration-500 ease-in-out ${
+                activeSlide === 1 ? "translate-x-0" : "translate-x-full"
+              }`}
+            >
+              <div className="h-full">
+                <PromotionPanel />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -169,5 +173,4 @@ const App = () => {
     </Routes>
   )
 }
-
 export default App
